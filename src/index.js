@@ -18,7 +18,9 @@ app.ports.nlpCmd.subscribe(
     r.pipe(
         log,
         match({
-            Past: val => nlp.sentence(val).to_past().text()
+            Past: val => nlp.sentence(val).to_past().text(),
+            Plural: val => nlp.noun(val).pluralize(),
+            Conjugate: val => nlp.verb(val).conjugate()
         }),
         app.ports.nlpResp.send
     )
