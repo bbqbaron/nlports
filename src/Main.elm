@@ -5,11 +5,11 @@ import Html.App as App
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Json.Decode as Json exposing ((:=))
+import Json.Decode.Extra as JsonExtra exposing ((|:))
 import Json.Encode
 
-type alias Conjugations =
-    {
-        past: String
+type alias Conjugations = {
+    past: String
     , infinitive: String
     , gerund: String
     , actor: String
@@ -17,9 +17,21 @@ type alias Conjugations =
     , future: String
     , perfect: String
     , pluperfect: String
-    -- TODO curse you object8! i need object9!
---    , future_perfect: String
-    }
+    , future_perfect: String
+}
+
+conjugationJson : Json.Decoder Conjugations
+conjugationJson =
+    Json.succeed Conjugations
+        |: ("past" := Json.string)
+        |: ("infinitive" := Json.string)
+        |: ("gerund" := Json.string)
+        |: ("actor" := Json.string)
+        |: ("present" := Json.string)
+        |: ("future" := Json.string)
+        |: ("perfect" := Json.string)
+        |: ("pluperfect" := Json.string)
+        |: ("future_perfect" := Json.string)
 
 type NlpResponse =
     Text String
@@ -76,18 +88,6 @@ update action model =
             ({model | error = error}, Cmd.none)
         Noop ->
             (model, Cmd.none)
-
-conjugationJson : Json.Decoder Conjugations
-conjugationJson =
-    Json.object8 Conjugations
-        ("past" := Json.string)
-        ("infinitive" := Json.string)
-        ("gerund" := Json.string)
-        ("actor" := Json.string)
-        ("present" := Json.string)
-        ("future" := Json.string)
-        ("perfect" := Json.string)
-        ("pluperfect" := Json.string)
 
 parse : Json.Decoder NlpResponse
 parse =
