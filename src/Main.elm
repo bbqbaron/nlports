@@ -5,47 +5,13 @@ import Html.App as App
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Json.Decode as Json exposing ((:=))
-import Json.Decode.Extra as JsonExtra exposing ((|:))
 import Json.Encode
-
-type alias Conjugations = {
-    past: String
-    , infinitive: String
-    , gerund: String
-    , actor: String
-    , present: String
-    , future: String
-    , perfect: String
-    , pluperfect: String
-    , future_perfect: String
-}
-
-conjugationJson : Json.Decoder Conjugations
-conjugationJson =
-    Json.succeed Conjugations
-        |: ("past" := Json.string)
-        |: ("infinitive" := Json.string)
-        |: ("gerund" := Json.string)
-        |: ("actor" := Json.string)
-        |: ("present" := Json.string)
-        |: ("future" := Json.string)
-        |: ("perfect" := Json.string)
-        |: ("pluperfect" := Json.string)
-        |: ("future_perfect" := Json.string)
-
-type NlpResponse =
-    Text String
-    | Conj Conjugations
-    | Empty
-
-type NlpCmd =
-    Past
-    | Plural
-    | Conjugate
+import NLP.Command as NLPC
+import NLP.Response as NLPR
 
 type Action =
-    FromNlp NlpResponse
-    | ToNlp NlpCmd
+    FromNlp NLPR.NlpResponse
+    | ToNlp NLPC.NlpCmd
     | SetText String
     | DammitJS String
     | Noop
@@ -53,7 +19,7 @@ type Action =
 type alias Model =
     {
     text : String
-    , answer : NlpResponse
+    , answer : NLPR.NlpResponse
     , error : String
     }
 
@@ -61,17 +27,10 @@ port nlpCmd : (String, String) -> Cmd msg
 
 port nlpResp : (Json.Encode.Value -> msg) -> Sub msg
 
-print : NlpResponse -> String
-print resp =
-    case resp of
-        Text s -> s
-        Conj c -> toString c
-        Empty -> ""
-
 init : (Model, Cmd Action)
 init =
     (
-     {text = "", answer = Empty, error = ""}
+     {text = "", answer = NLPR.empty, error = ""}
     , Cmd.none
     )
 
@@ -89,14 +48,6 @@ update action model =
         Noop ->
             (model, Cmd.none)
 
-parse : Json.Decoder NlpResponse
-parse =
-    Json.oneOf
-        [
-         Json.map Conj conjugationJson
-        , Json.map Text Json.string
-        ]
-
 -- is this not part of a standard API?
 fork onOk onErr result =
     case result of
@@ -105,7 +56,7 @@ fork onOk onErr result =
 
 subscriptions : Model -> Sub Action
 subscriptions model =
-    (Json.decodeValue parse)
+    NLPR.parse
     >> (fork
             FromNlp
             DammitJS)
@@ -122,7 +73,7 @@ view model =
               , Events.onInput SetText
               ]
               []
-         , Html.text ("Response: " ++ (print model.answer))
+         , Html.text ("Response: " ++ (NLPR.print model.answer))
          , Html.text ("Error: " ++ model.error)
          ] ++
   -- buttons for the various questions
@@ -131,7 +82,7 @@ view model =
                   Html.button
                   [Events.onClick (ToNlp command)]
                   [Html.text (toString command)])
-             [Past, Plural, Conjugate])
+             NLPC.commands)
             )
 
 main : Program Never
