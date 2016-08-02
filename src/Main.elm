@@ -23,14 +23,14 @@ type alias Model =
     , error : String
     }
 
-port nlpCmd : (String, String) -> Cmd msg
+port nlpCmd : NLPC.NlpRequest -> Cmd msg
 
 port nlpResp : (Json.Encode.Value -> msg) -> Sub msg
 
 init : (Model, Cmd Action)
 init =
     (
-     {text = "", answer = NLPR.empty, error = ""}
+     {text = "She sells seashells.", answer = NLPR.empty, error = ""}
     , Cmd.none
     )
 
@@ -39,8 +39,12 @@ update action model =
     case action of
         SetText s ->
             ({model | text = s}, Cmd.none)
-        ToNlp cmd ->
-            (model, nlpCmd ((toString cmd), model.text))
+        ToNlp cmds ->
+            ({ model |
+                   error = ""
+                   , answer = NLPR.empty
+             }
+             , nlpCmd (NLPC.make cmds model.text))
         FromNlp response ->
             ({model | answer = response}, Cmd.none)
         DammitJS error ->
@@ -65,25 +69,33 @@ subscriptions model =
 view : Model -> Html.Html Action
 view model =
     Html.div
-        []
-        (
-         [
-          Html.input
-              [Attributes.value model.text
-              , Events.onInput SetText
-              ]
-              []
-         , Html.text ("Response: " ++ (NLPR.print model.answer))
-         , Html.text ("Error: " ++ model.error)
-         ] ++
-  -- buttons for the various questions
-        (List.map
-             (\command ->
-                  Html.button
-                  [Events.onClick (ToNlp command)]
-                  [Html.text (toString command)])
-             NLPC.commands)
-            )
+        [Attributes.class "pure-g"]
+        [
+         Html.div [Attributes.class "pure-u-1-3"]
+             [
+              Html.p [] [Html.text "Text: "]
+             , Html.input
+                 [Attributes.value model.text
+                 , Events.onInput SetText
+                 , Attributes.type' "text"
+                 , Attributes.class "pure-input-1"
+                 ]
+                  []
+             ]
+         , Html.div [Attributes.class "pure-u-1-3"]
+             [
+              Html.p [] [Html.text ("Response: " ++ (NLPR.print model.answer))]
+             , Html.p [] [Html.text ("Error: " ++ model.error)]
+             ]
+         , Html.div [Attributes.class "pure-u-1-3"]
+             (List.map
+                  (\commands ->
+                       Html.button
+                       [Events.onClick (ToNlp commands)
+                       , Attributes.classList [("pure-button", True), ("pure-button-active", True)]]
+                       [Html.text (toString commands)])
+                  NLPC.commandSets)
+        ]
 
 main : Program Never
 main =

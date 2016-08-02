@@ -3,25 +3,23 @@ const nlp = require('nlp_compromise'),
 
 const app = Elm.Main.fullscreen();
 
-const log = r.tap(x => {console.log(x);});
+const callAll = ({commands: [first, ...rest], text}) =>
+    r.reduce(
+        (acc, token) =>
+            r.type(acc[token]) === "Function" ?
+            acc[token]() :
+            acc[token],
+        nlp[first](text),
+        rest
+    );
 
-const match = r.curry(
-    (spec, [cmd, val]) => spec[
-        r.find(
-            r.equals(cmd),
-            r.keys(spec)
-        )
-    ](val)
-);
+const log = r.tap(x => {console.log(x);});
 
 app.ports.nlpCmd.subscribe(
     r.pipe(
         log,
-        match({
-            Past: val => nlp.sentence(val).to_past().text(),
-            Plural: val => nlp.noun(val).pluralize(),
-            Conjugate: val => nlp.verb(val).conjugate()
-        }),
+        callAll,
+        log,
         app.ports.nlpResp.send
     )
 );

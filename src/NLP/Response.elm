@@ -2,6 +2,7 @@ module NLP.Response exposing (..)
 
 import Json.Decode as Json exposing ((:=))
 import Json.Decode.Extra as JsonExtra exposing ((|:))
+import String
 
 type alias Conjugations = {
     past: String
@@ -17,6 +18,7 @@ type alias Conjugations = {
 
 type NlpResponse =
     Text String
+    | Tokens (List String)
     | Conj Conjugations
     | Empty
 
@@ -26,9 +28,10 @@ empty = Empty
 print : NlpResponse -> String
 print resp =
     case resp of
-        Text s -> s
         Conj c -> toString c
         Empty -> ""
+        Text s -> s
+        Tokens ts -> String.concat (List.map toString ts)
 
 parse : Json.Value -> Result String NlpResponse
 parse =
@@ -36,6 +39,7 @@ parse =
         [
          Json.map Conj conjugationJson
         , Json.map Text Json.string
+        , Json.map Tokens (Json.list Json.string)
         ]
         |> Json.decodeValue
 
